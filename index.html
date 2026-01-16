@@ -744,6 +744,19 @@
             useEffect(() => { safeSave('bp_lab_results', labResults); }, [labResults]);
             useEffect(() => { localStorage.setItem('bp_wa', whatsapp); }, [whatsapp]);
 
+            // Listen for changes from OTHER tabs
+            useEffect(() => {
+                const handleStorageChange = (e) => {
+                    if (e.key === 'bp_products') setProducts(JSON.parse(e.newValue));
+                    if (e.key === 'bp_reviews') setReviews(JSON.parse(e.newValue));
+                    if (e.key === 'bp_cats') setCategories(JSON.parse(e.newValue));
+                    if (e.key === 'bp_lab_results') setLabResults(JSON.parse(e.newValue));
+                    if (e.key === 'bp_wa') setWhatsapp(e.newValue);
+                };
+                window.addEventListener('storage', handleStorageChange);
+                return () => window.removeEventListener('storage', handleStorageChange);
+            }, []);
+
             const addToCart = (p) => {
                 const ex = cart.find(x => x.id === p.id);
                 setCart(ex ? cart.map(x => x.id === p.id ? {...x, qty: x.qty+1} : x) : [...cart, {...p, qty: 1}]);
