@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BioPulse Labs | Premium Research</title>
     
-    <!-- 1. TAILWIND CSS (Styling) -->
+    <!-- 1. TAILWIND CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. FONT AWESOME (Icons) -->
+    <!-- 2. FONT AWESOME -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 3. REACT & BABEL (Logic) -->
+    <!-- 3. REACT & BABEL -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -35,10 +35,16 @@
         body { font-family: 'Inter', sans-serif; background-color: #000; color: #d4d4d8; }
         .fade-enter { opacity: 0; transform: translateY(10px); }
         .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
-        .glass-panel { background: rgba(24, 24, 27, 0.8); backdrop-filter: blur(8px); border: 1px solid rgba(39, 39, 42, 1); }
+        
+        /* Mobile Table Fixes */
+        .table-container { 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            padding-bottom: 1rem;
+        }
         
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #09090b; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
@@ -48,7 +54,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // --- DATA CONSTANTS ---
         const INITIAL_PRODUCTS = [
@@ -75,20 +81,13 @@
 
         // --- COMPONENTS ---
 
-        const Navbar = ({ view, setView, cartCount, setIsCartOpen, searchQuery, setSearchQuery }) => {
-            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-            const handleMobileNav = (v) => {
-                setView(v);
-                setIsMobileMenuOpen(false);
-            };
-
+        const Navbar = ({ view, navigate, cartCount, openCart, searchQuery, setSearchQuery, isMobileMenuOpen, setIsMobileMenuOpen }) => {
             return (
                 <nav className="fixed w-full z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
                     <div className="max-w-7xl mx-auto px-4">
                         <div className="flex justify-between items-center h-20">
                             {/* Logo */}
-                            <div onClick={() => setView('home')} className="flex items-center gap-3 cursor-pointer group z-50">
+                            <div onClick={() => navigate('home')} className="flex items-center gap-3 cursor-pointer group z-50">
                                 <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 group-hover:border-emerald-500/50 transition-all">
                                     <i className="fa-solid fa-heart-pulse text-emerald-500 text-xl"></i>
                                 </div>
@@ -103,7 +102,7 @@
                                 {['Home', 'Products', 'Lab Results', 'Reviews', 'Calculator', 'About'].map((item) => (
                                     <button 
                                         key={item}
-                                        onClick={() => setView(item.toLowerCase().replace(' ', ''))}
+                                        onClick={() => navigate(item.toLowerCase().replace(' ', ''))}
                                         className={`text-sm font-medium transition-colors ${view === item.toLowerCase().replace(' ', '') ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'}`}
                                     >
                                         {item}
@@ -124,7 +123,7 @@
                                     <i className="fa-solid fa-magnifying-glass absolute left-3 top-3 text-zinc-500 text-xs"></i>
                                 </div>
 
-                                <button onClick={() => setIsCartOpen(true)} className="relative text-zinc-300 hover:text-emerald-400 transition-colors">
+                                <button onClick={openCart} className="relative text-zinc-300 hover:text-emerald-400 transition-colors">
                                     <i className="fa-solid fa-cart-shopping text-xl"></i>
                                     {cartCount > 0 && (
                                         <span className="absolute -top-2 -right-2 bg-emerald-500 text-black text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
@@ -133,7 +132,7 @@
                                     )}
                                 </button>
 
-                                <button onClick={() => setView('admin')} className="text-zinc-600 hover:text-red-500 transition-colors">
+                                <button onClick={() => navigate('admin')} className="text-zinc-600 hover:text-red-500 transition-colors">
                                     <i className="fa-solid fa-lock text-sm"></i>
                                 </button>
 
@@ -147,12 +146,15 @@
 
                     {/* Mobile Menu Dropdown */}
                     {isMobileMenuOpen && (
-                        <div className="md:hidden absolute top-20 left-0 w-full bg-zinc-950 border-b border-zinc-800 shadow-2xl flex flex-col p-4 gap-2 fade-enter-active">
+                        <div className="md:hidden absolute top-20 left-0 w-full bg-zinc-950 border-b border-zinc-800 shadow-2xl flex flex-col p-4 gap-2 fade-enter-active h-screen">
                              {['Home', 'Products', 'Lab Results', 'Reviews', 'Calculator', 'About'].map((item) => (
                                 <button 
                                     key={item}
-                                    onClick={() => handleMobileNav(item.toLowerCase().replace(' ', ''))}
-                                    className={`text-left px-4 py-3 rounded-lg text-sm font-medium ${view === item.toLowerCase().replace(' ', '') ? 'bg-emerald-500/10 text-emerald-500' : 'text-zinc-400 hover:bg-zinc-900'}`}
+                                    onClick={() => {
+                                        navigate(item.toLowerCase().replace(' ', ''));
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                    className={`text-left px-4 py-4 rounded-lg text-lg font-medium border-b border-zinc-900 ${view === item.toLowerCase().replace(' ', '') ? 'bg-emerald-500/10 text-emerald-500' : 'text-zinc-400 hover:bg-zinc-900'}`}
                                 >
                                     {item}
                                 </button>
@@ -163,7 +165,7 @@
             );
         };
 
-        const Hero = ({ setView }) => (
+        const Hero = ({ navigate }) => (
             <div className="relative pt-32 pb-20 overflow-hidden text-center">
                 <div className="max-w-7xl mx-auto px-4 relative z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6">
@@ -178,10 +180,10 @@
                         Premium research peptides and compounds. Rigorously tested, securely shipped, and trusted by leading researchers worldwide.
                     </p>
                     <div className="flex justify-center gap-4">
-                        <button onClick={() => setView('products')} className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-xl transition-all flex items-center gap-2">
+                        <button onClick={() => navigate('products')} className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-xl transition-all flex items-center gap-2">
                             View Catalog <i className="fa-solid fa-chevron-right text-xs"></i>
                         </button>
-                        <button onClick={() => setView('labresults')} className="px-8 py-4 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 font-bold rounded-xl transition-all">
+                        <button onClick={() => navigate('labresults')} className="px-8 py-4 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 font-bold rounded-xl transition-all">
                             Verify Lab Results
                         </button>
                     </div>
@@ -360,8 +362,8 @@
                     <p className="text-zinc-400">We publish unedited HPLC reports for every batch. Download the PDFs below.</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[600px]">
+                    <div className="table-container">
+                        <table className="w-full text-left min-w-[700px]">
                             <thead className="bg-zinc-950 border-b border-zinc-800 text-xs font-bold uppercase text-zinc-500">
                                 <tr>
                                     <th className="p-6">Compound / Batch</th>
@@ -452,10 +454,14 @@
             const [newReview, setNewReview] = useState({ name: '', text: '', rating: 5, role: 'Researcher' });
             const [newLabResult, setNewLabResult] = useState({ name: '', date: '', purity: '99.%', status: 'Verified', file: null });
 
-            // File Handler helper (Converts to Base64)
+            // File Handler helper (Converts to Base64 with size limit)
             const handleFileUpload = (e, setter, field) => {
                 const file = e.target.files[0];
                 if (file) {
+                    if (file.size > 800 * 1024) { // 800KB limit
+                        alert("File too large! Please upload images/PDFs smaller than 800KB to save them without crashing.");
+                        return;
+                    }
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         setter(prev => ({ ...prev, [field]: reader.result }));
@@ -501,7 +507,7 @@
                     <div className="flex justify-between items-center mb-8">
                         <div>
                             <h2 className="text-3xl font-bold text-white">Command Center</h2>
-                            <p className="text-zinc-500 text-sm mt-1">Files are saved to browser memory (LocalStorage). Clear cache will delete them.</p>
+                            <p className="text-zinc-500 text-sm mt-1">Files saved to browser memory. Clear cache will delete them.</p>
                         </div>
                         <button onClick={() => setIsAdmin(false)} className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg text-sm hover:text-white">Log Out</button>
                     </div>
@@ -528,7 +534,7 @@
                                     <div className="relative border-2 border-dashed border-zinc-800 rounded-lg p-6 text-center hover:bg-zinc-800/50 transition">
                                         <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setNewProduct, 'image')} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                                         <i className="fa-solid fa-cloud-arrow-up text-zinc-500 text-xl mb-2"></i>
-                                        <p className="text-xs text-zinc-500">{newProduct.image ? "Image Selected" : "Upload Image"}</p>
+                                        <p className="text-xs text-zinc-500">{newProduct.image ? (newProduct.image.startsWith('data:') ? "Image Uploaded" : "URL Set") : "Upload Image (< 800KB)"}</p>
                                     </div>
                                     <p className="text-[10px] text-zinc-600 text-center">or paste URL below</p>
                                     <input placeholder="Image URL" value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-white text-xs" />
@@ -537,7 +543,7 @@
                                 </div>
                             </div>
                             <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                                <div className="overflow-x-auto">
+                                <div className="table-container">
                                     <table className="w-full text-left text-sm text-zinc-400 min-w-[500px]">
                                         <thead className="bg-zinc-950 text-zinc-500 font-medium border-b border-zinc-800">
                                             <tr><th className="p-4">Product</th><th className="p-4">Price</th><th className="p-4">Stock</th><th className="p-4 text-right">Action</th></tr>
@@ -599,14 +605,14 @@
                                     <div className="relative border-2 border-dashed border-zinc-800 rounded-lg p-6 text-center hover:bg-zinc-800/50 transition">
                                         <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e, setNewLabResult, 'file')} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                                         <i className="fa-solid fa-file-pdf text-zinc-500 text-xl mb-2"></i>
-                                        <p className="text-xs text-zinc-500">{newLabResult.file ? "PDF Selected" : "Upload PDF Report"}</p>
+                                        <p className="text-xs text-zinc-500">{newLabResult.file ? "PDF Selected" : "Upload PDF Report (< 800KB)"}</p>
                                     </div>
 
                                     <button onClick={handleAddLabResult} className="w-full bg-emerald-500 text-black font-bold py-3 rounded-lg text-sm">Add Result</button>
                                 </div>
                             </div>
                             <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                                <div className="overflow-x-auto">
+                                <div className="table-container">
                                     <table className="w-full text-left text-sm text-zinc-400 min-w-[500px]">
                                         <thead className="bg-zinc-950 text-zinc-500 font-medium border-b border-zinc-800">
                                             <tr><th className="p-4">Batch</th><th className="p-4">Purity</th><th className="p-4">PDF</th><th className="p-4 text-right">Action</th></tr>
@@ -642,6 +648,7 @@
             const [view, setView] = useState('home');
             const [cart, setCart] = useState([]);
             const [isCartOpen, setIsCartOpen] = useState(false);
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State
             const [searchQuery, setSearchQuery] = useState('');
             const [activeCategory, setActiveCategory] = useState('All');
             const [isAdmin, setIsAdmin] = useState(false);
@@ -654,57 +661,102 @@
             const [labResults, setLabResults] = useState(() => JSON.parse(localStorage.getItem('bp_lab_results')) || INITIAL_LAB_RESULTS);
             const [whatsapp, setWhatsapp] = useState(() => localStorage.getItem('bp_wa') || '15550001234');
 
-            // --- NAVIGATION LOGIC WITH HISTORY SUPPORT ---
+            // --- SMART NAVIGATION LOGIC ---
+            // 1. Hub & Spoke Model: Back always goes to Home from other pages
             const navigate = (newView) => {
-                setView(newView);
-                window.history.pushState({ view: newView }, '', `#${newView}`);
+                if (newView === view) return;
+                
+                // If we are going TO home, push it so we can go back
+                // If we are LEAVING home, push it so we can return
+                // But if we are navigating BETWEEN sub-pages (e.g. Products -> About), REPLACE so Back goes Home
+                
+                if (newView === 'home') {
+                    setView('home');
+                    window.history.pushState({ view: 'home' }, '', '#home');
+                } else {
+                    setView(newView);
+                    if (view === 'home') {
+                        // Came from home -> Push
+                        window.history.pushState({ view: newView }, '', `#${newView}`);
+                    } else {
+                        // Came from sub-page -> Replace (so Back goes to Home, not previous sub-page)
+                        window.history.replaceState({ view: newView }, '', `#${newView}`);
+                    }
+                }
                 window.scrollTo(0, 0);
             };
 
-            // Listen for Back Button (PopState)
+            // 2. Open Cart with History State (so Back closes it)
+            const openCart = () => {
+                setIsCartOpen(true);
+                window.history.pushState({ modal: 'cart' }, '', '#cart');
+            };
+
+            // 3. Listen for Back Button
             useEffect(() => {
                 const handlePopState = (event) => {
+                    // Priority 1: Close Modals if they are open (Use "Smart" logic)
+                    if (isCartOpen) {
+                        setIsCartOpen(false);
+                        return; // Stop there, don't change view yet
+                    }
+                    if (isMobileMenuOpen) {
+                        setIsMobileMenuOpen(false);
+                        return;
+                    }
+
+                    // Priority 2: Handle View Navigation
                     if (event.state && event.state.view) {
                         setView(event.state.view);
                     } else {
-                        // Handle initial load hash or default
+                        // Fallback/Initial load
                         const hash = window.location.hash.replace('#', '');
-                        if (hash) setView(hash);
+                        if (hash && hash !== 'cart') setView(hash);
                         else setView('home');
                     }
                 };
 
                 window.addEventListener('popstate', handlePopState);
                 
-                // Set initial state if none exists
+                // Initialize history state if empty
                 if (!window.history.state) {
                     window.history.replaceState({ view: 'home' }, '', '#home');
                 }
 
                 return () => window.removeEventListener('popstate', handlePopState);
-            }, []);
-            // ---------------------------------------------
+            }, [isCartOpen, isMobileMenuOpen]);
 
-            // Save to LocalStorage effects
-            useEffect(() => { localStorage.setItem('bp_products', JSON.stringify(products)); }, [products]);
-            useEffect(() => { localStorage.setItem('bp_reviews', JSON.stringify(reviews)); }, [reviews]);
-            useEffect(() => { localStorage.setItem('bp_cats', JSON.stringify(categories)); }, [categories]);
-            useEffect(() => { localStorage.setItem('bp_lab_results', JSON.stringify(labResults)); }, [labResults]);
+            // Helper to safe save
+            const safeSave = (key, value) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (e) {
+                    if (e.name === 'QuotaExceededError') {
+                        alert('Storage Limit Exceeded! The image or file you just added is too large to save locally. Please use a smaller file or an external URL.');
+                    }
+                }
+            };
+
+            // Save to LocalStorage effects (Admin Data Only)
+            useEffect(() => { safeSave('bp_products', products); }, [products]);
+            useEffect(() => { safeSave('bp_reviews', reviews); }, [reviews]);
+            useEffect(() => { safeSave('bp_cats', categories); }, [categories]);
+            useEffect(() => { safeSave('bp_lab_results', labResults); }, [labResults]);
             useEffect(() => { localStorage.setItem('bp_wa', whatsapp); }, [whatsapp]);
 
             const addToCart = (p) => {
                 const ex = cart.find(x => x.id === p.id);
                 setCart(ex ? cart.map(x => x.id === p.id ? {...x, qty: x.qty+1} : x) : [...cart, {...p, qty: 1}]);
-                setIsCartOpen(true);
+                openCart(); // Use smart open
             };
 
             const updateQty = (id, d) => setCart(cart.map(x => x.id === id ? {...x, qty: Math.max(1, x.qty+d)} : x));
             const remove = (id) => setCart(cart.filter(x => x.id !== id));
             
             const checkout = () => {
-                let msg = `*New Order*\n\n`;
+                let msg = `*New Order Request*\n------------------\n`;
                 cart.forEach(x => msg += `• ${x.name} (x${x.qty}) - $${x.price * x.qty}\n`);
-                msg += `\n*Total: $${cart.reduce((a,b) => a + b.price*b.qty, 0)}*`;
+                msg += `------------------\n*Total: $${cart.reduce((a,b) => a + b.price*b.qty, 0)}*`;
                 window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
             };
 
@@ -714,15 +766,14 @@
             );
 
             return (
-                <div className="min-h-screen">
-                    {/* Passed navigate function instead of setView for Navbar links */}
-                    <Navbar view={view} setView={navigate} cartCount={cart.length} setIsCartOpen={setIsCartOpen} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                    <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} cart={cart} updateQty={updateQty} remove={remove} checkout={checkout} />
+                <div className="min-h-screen pb-20">
+                    <Navbar view={view} navigate={navigate} cartCount={cart.length} openCart={openCart} searchQuery={searchQuery} setSearchQuery={setSearchQuery} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+                    <CartDrawer isOpen={isCartOpen} onClose={() => { setIsCartOpen(false); window.history.back(); }} cart={cart} updateQty={updateQty} remove={remove} checkout={checkout} />
                     
                     <main>
                         {view === 'home' && (
                             <>
-                                <Hero setView={navigate} />
+                                <Hero navigate={navigate} />
                                 <Products products={filteredProducts} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} addToCart={addToCart} />
                                 <ReviewsView reviews={reviews} />
                             </>
