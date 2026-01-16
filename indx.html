@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioPulse Labs | Premium Research</title>
+    
+    <!-- 1. TAILWIND CSS (Styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. FONT AWESOME (Icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 3. REACT & BABEL (Logic) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Custom Config for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669', 900: '#064e3b' },
+                        zinc: { 800: '#27272a', 900: '#18181b', 950: '#09090b' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #d4d4d8; }
+        .fade-enter { opacity: 0; transform: translateY(10px); }
+        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
+        .glass-panel { background: rgba(24, 24, 27, 0.8); backdrop-filter: blur(8px); border: 1px solid rgba(39, 39, 42, 1); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- DATA CONSTANTS ---
+        const INITIAL_PRODUCTS = [
+            { id: '1', name: 'BPC-157 ARG', price: 55, category: 'Peptides', stock: 15, image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400', badge: 'Best Seller' },
+            { id: '2', name: 'TB-500', price: 65, category: 'Peptides', stock: 8, image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&q=80&w=400', badge: 'Pure 99%' },
+            { id: '3', name: 'Semaglutide GLP-1', price: 120, category: 'Peptides', stock: 4, image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&q=80&w=400', badge: 'Low Stock' },
+            { id: '4', name: 'BAC Water', price: 15, category: 'Supplies', stock: 100, image: 'https://images.unsplash.com/photo-1516841273335-e39b37888115?auto=format&fit=crop&q=80&w=400', badge: '' },
+            { id: '5', name: 'Tirzepatide', price: 140, category: 'Peptides', stock: 12, image: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?auto=format&fit=crop&q=80&w=400', badge: 'New' },
+        ];
+
+        const INITIAL_REVIEWS = [
+            { id: 1, name: "Dr. A. Smith", role: "Biochemist", text: "Purity levels on the Janoshik reports match exactly what I received. Excellent research material.", rating: 5 },
+            { id: 2, name: "Marcus J.", role: "Researcher", text: "Fast shipping. BPC-157 yielded expected results in trials.", rating: 5 },
+            { id: 3, name: "Elena R.", role: "Customer", text: "Customer service on WhatsApp was incredibly helpful.", rating: 4 }
+        ];
+
+        const INITIAL_LAB_RESULTS = [
+            { id: 101, name: "BPC-157 Batch #0923", date: "Oct 2024", purity: "99.8%", status: "Verified", file: null },
+            { id: 102, name: "TB-500 Batch #1102", date: "Nov 2024", purity: "99.6%", status: "Verified", file: null },
+            { id: 103, name: "Semaglutide Batch #1255", date: "Dec 2024", purity: "99.9%", status: "Verified", file: null }
+        ];
+
+        const INITIAL_CATEGORIES = ['Peptides', 'Nootropics', 'Supplies'];
+
+        // --- COMPONENTS ---
+
+        const Navbar = ({ view, setView, cartCount, setIsCartOpen, searchQuery, setSearchQuery }) => (
+            <nav className="fixed w-full z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
+                <div className="max-w-7xl mx-auto px-4">
+                    <div className="flex justify-between items-center h-20">
+                        {/* Logo */}
+                        <div onClick={() => setView('home')} className="flex items-center gap-3 cursor-pointer group">
+                            <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 group-hover:border-emerald-500/50 transition-all">
+                                <i className="fa-solid fa-heart-pulse text-emerald-500 text-xl"></i>
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold text-white tracking-tight">BioPulse<span className="text-emerald-500">.Labs</span></h1>
+                                <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Research Solutions</p>
+                            </div>
+                        </div>
+
+                        {/* Desktop Menu */}
+                        <div className="hidden md:flex items-center gap-8">
+                            {['Home', 'Products', 'Lab Results', 'Reviews', 'Calculator', 'About'].map((item) => (
+                                <button 
+                                    key={item}
+                                    onClick={() => setView(item.toLowerCase().replace(' ', ''))}
+                                    className={`text-sm font-medium transition-colors ${view === item.toLowerCase().replace(' ', '') ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'}`}
+                                >
+                                    {item}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Right Actions */}
+                        <div className="flex items-center gap-4">
+                            <div className="relative hidden lg:block">
+                                <input 
+                                    type="text" 
+                                    placeholder="Search..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm rounded-full pl-9 pr-4 py-2 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-40 transition-all"
+                                />
+                                <i className="fa-solid fa-magnifying-glass absolute left-3 top-3 text-zinc-500 text-xs"></i>
+                            </div>
+
+                            <button onClick={() => setIsCartOpen(true)} className="relative text-zinc-300 hover:text-emerald-400 transition-colors">
+                                <i className="fa-solid fa-cart-shopping text-xl"></i>
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-emerald-500 text-black text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button onClick={() => setView('admin')} className="text-zinc-600 hover:text-red-500 transition-colors">
+                                <i className="fa-solid fa-lock text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        );
+
+        const Hero = ({ setView }) => (
+            <div className="relative pt-32 pb-20 overflow-hidden text-center">
+                <div className="max-w-7xl mx-auto px-4 relative z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Lab Verified Purity &gt;99%
+                    </div>
+                    <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight fade-enter-active">
+                        Advancing <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Human Potential</span><br />
+                        Through Science
+                    </h1>
+                    <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-10">
+                        Premium research peptides and compounds. Rigorously tested, securely shipped, and trusted by leading researchers worldwide.
+                    </p>
+                    <div className="flex justify-center gap-4">
+                        <button onClick={() => setView('products')} className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-xl transition-all flex items-center gap-2">
+                            View Catalog <i className="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                        <button onClick={() => setView('labresults')} className="px-8 py-4 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 font-bold rounded-xl transition-all">
+                            Verify Lab Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Products = ({ products, categories, activeCategory, setActiveCategory, addToCart }) => (
+            <div className="max-w-7xl mx-auto px-4 py-24">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">Research Catalog</h2>
+                        <p className="text-zinc-400">Select compounds for your research.</p>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                        <button onClick={() => setActiveCategory('All')} className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeCategory === 'All' ? 'bg-emerald-500 text-black' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'}`}>All</button>
+                        {categories.map(cat => (
+                            <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeCategory === cat ? 'bg-emerald-500 text-black' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'}`}>{cat}</button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {products.map(product => (
+                        <div key={product.id} className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300">
+                            <div className="relative h-64 bg-zinc-950 overflow-hidden">
+                                <img src={product.image} alt={product.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                                {product.badge && <div className="absolute top-3 left-3 bg-emerald-500 text-black text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">{product.badge}</div>}
+                            </div>
+                            <div className="p-5">
+                                <div className="text-xs text-emerald-500 font-bold uppercase tracking-wider mb-1">{product.category}</div>
+                                <h3 className="text-white font-bold text-lg">{product.name}</h3>
+                                <div className="flex items-center gap-1 mb-4 mt-1">
+                                    {[1,2,3,4,5].map(i => <i key={i} className="fa-solid fa-star text-[10px] text-emerald-500"></i>)}
+                                    <span className="text-xs text-zinc-500 ml-1">(4.9)</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+                                    <span className="text-xl font-bold text-white">${product.price}</span>
+                                    <button onClick={() => addToCart(product)} className="bg-zinc-100 hover:bg-emerald-500 hover:text-black text-zinc-900 px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+                                        <i className="fa-solid fa-plus text-xs"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const VisualCalculator = () => {
+            const [mg, setMg] = useState(5);
+            const [ml, setMl] = useState(2);
+            const [dose, setDose] = useState(250);
+            
+            const result = useMemo(() => {
+                if (!mg || !ml || !dose) return 0;
+                const totalMcg = parseFloat(mg) * 1000;
+                const concentration = totalMcg / parseFloat(ml);
+                const units = (parseFloat(dose) / concentration) * 100;
+                return Math.min(Math.max(units, 0), 100);
+            }, [mg, ml, dose]);
+
+            return (
+                <div className="max-w-5xl mx-auto px-4 py-32">
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+                            <h2 className="text-3xl font-bold text-white mb-6">Peptide Reconstitution</h2>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="flex justify-between text-xs font-bold text-zinc-500 uppercase mb-2"><span>Vial Quantity (mg)</span><span className="text-white">{mg} mg</span></label>
+                                    <input type="range" min="1" max="20" step="1" value={mg} onChange={e => setMg(e.target.value)} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                                </div>
+                                <div>
+                                    <label className="flex justify-between text-xs font-bold text-zinc-500 uppercase mb-2"><span>Bacteriostatic Water (ml)</span><span className="text-white">{ml} ml</span></label>
+                                    <input type="range" min="1" max="10" step="0.5" value={ml} onChange={e => setMl(e.target.value)} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-emerald-500 uppercase mb-2">Desired Dosage (mcg)</label>
+                                    <input type="number" value={dose} onChange={e => setDose(e.target.value)} className="w-full bg-zinc-950 border border-emerald-500/30 rounded-xl p-4 text-white focus:border-emerald-500 focus:outline-none" />
+                                </div>
+                            </div>
+                            <div className="mt-8 p-6 bg-zinc-950 rounded-xl border border-zinc-800 text-center">
+                                <p className="text-zinc-500 text-xs uppercase">Draw to Tick Mark</p>
+                                <h3 className="text-5xl font-bold text-white mt-2">{result.toFixed(1)} <span className="text-lg text-emerald-500">IU</span></h3>
+                            </div>
+                        </div>
+
+                        {/* Visual Syringe */}
+                        <div className="flex flex-col items-center justify-center bg-zinc-900/50 p-8 rounded-3xl border border-zinc-800">
+                            <div className="relative w-24 h-96 bg-zinc-200 rounded-full border-4 border-zinc-300 overflow-hidden shadow-inner">
+                                <div className="absolute bottom-0 left-0 right-0 bg-emerald-500/80 w-full transition-all duration-500 ease-out" style={{ height: `${result}%` }}></div>
+                                <div className="absolute inset-0 flex flex-col justify-between py-4 px-2 pointer-events-none">
+                                    {[...Array(11)].map((_, i) => (
+                                        <div key={i} className="w-full h-[1px] bg-zinc-400 flex items-center">
+                                            <span className="text-[10px] font-bold text-zinc-600 -ml-6 w-4 text-right">{100 - (i * 10)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <p className="mt-6 text-zinc-400 text-sm font-medium">U-100 Insulin Syringe Visualizer</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const AboutView = () => (
+            <div className="max-w-4xl mx-auto px-4 py-32">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-bold text-white mb-6">Pioneering Bio-Research</h2>
+                    <p className="text-xl text-zinc-400">Empowering the scientific community with uncompromised quality and transparency.</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                    <div className="space-y-6 text-zinc-300 leading-relaxed">
+                        <p>
+                            At <span className="text-emerald-500 font-bold">BioPulse Labs</span>, we recognized a critical gap in the research materials market: the need for verifiable, high-purity compounds backed by data, not just promises.
+                        </p>
+                        <p>
+                            Founded by a team of biochemists and researchers, we have established a rigorous quality control protocol. Unlike standard suppliers, we operate with a "Test First, Sell Second" policy. Every batch of peptides entering our facility undergoes Third-Party HPLC (High-Performance Liquid Chromatography) and Mass Spectrometry analysis.
+                        </p>
+                        <p>
+                            We are committed to advancing scientific discovery by eliminating the variable of low-quality reagents. When you choose BioPulse, you choose consistency, purity, and integrity.
+                        </p>
+                        <ul className="space-y-4 mt-8">
+                            {[
+                                "99%+ Purity Standard on all Peptides",
+                                "Strict Cold-Chain Storage & Handling",
+                                "Blind Third-Party Testing Transparency",
+                                "Secure, Encrypted, and Discreet Logistics"
+                            ].map((item, i) => (
+                                <li key={i} className="flex items-center gap-3">
+                                    <i className="fa-solid fa-circle-check text-emerald-500"></i>
+                                    <span className="font-medium text-white">{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-2 rotate-3 hover:rotate-0 transition-all duration-500 shadow-2xl shadow-emerald-900/20">
+                        <img src="https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&q=80&w=800" alt="Laboratory" className="rounded-2xl w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" />
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ReviewsView = ({ reviews }) => (
+            <div className="max-w-7xl mx-auto px-4 py-24">
+                <h2 className="text-3xl font-bold text-white mb-12 text-center">Researcher Feedback</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {reviews.map(review => (
+                        <div key={review.id} className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl relative hover:border-emerald-500/30 transition-colors">
+                            <i className="fa-solid fa-quote-right absolute top-6 right-6 text-zinc-800 text-2xl"></i>
+                            <div className="flex gap-1 mb-4">
+                                {[...Array(review.rating)].map((_, i) => <i key={i} className="fa-solid fa-star text-xs text-emerald-500"></i>)}
+                            </div>
+                            <p className="text-zinc-300 mb-6 leading-relaxed">"{review.text}"</p>
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 font-bold">
+                                    {review.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="text-white font-bold text-sm">{review.name}</p>
+                                    <p className="text-zinc-500 text-xs">{review.role}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const LabResultsView = ({ results }) => (
+            <div className="max-w-5xl mx-auto px-4 py-24">
+                <div className="text-center mb-12">
+                    <i className="fa-solid fa-flask text-4xl text-emerald-500 mb-4"></i>
+                    <h2 className="text-3xl font-bold text-white mb-4">Transparency First</h2>
+                    <p className="text-zinc-400">We publish unedited HPLC reports for every batch. Download the PDFs below.</p>
+                </div>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-zinc-950 border-b border-zinc-800 text-xs font-bold uppercase text-zinc-500">
+                            <tr>
+                                <th className="p-6">Compound / Batch</th>
+                                <th className="p-6">Test Date</th>
+                                <th className="p-6">Purity</th>
+                                <th className="p-6 text-right">Report</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                            {results.map(res => (
+                                <tr key={res.id} className="hover:bg-zinc-800/50 transition-colors">
+                                    <td className="p-6">
+                                        <div className="font-bold text-white">{res.name}</div>
+                                        <div className="text-xs text-emerald-500 flex items-center gap-1 mt-1"><i className="fa-solid fa-circle-check"></i> {res.status}</div>
+                                    </td>
+                                    <td className="p-6 text-zinc-400 text-sm">{res.date}</td>
+                                    <td className="p-6 font-mono text-emerald-400 font-bold">{res.purity}</td>
+                                    <td className="p-6 text-right">
+                                        {res.file ? (
+                                            <a href={res.file} download={`Report-${res.name}.pdf`} className="text-sm bg-zinc-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg transition-all inline-flex items-center gap-2">
+                                                <i className="fa-solid fa-file-pdf text-red-400"></i> Download PDF
+                                            </a>
+                                        ) : (
+                                            <button className="text-sm bg-zinc-800 text-zinc-500 px-4 py-2 rounded-lg cursor-not-allowed">Pending</button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+
+        const CartDrawer = ({ isOpen, onClose, cart, updateQty, remove, checkout }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
+                    <div className="relative w-full max-w-md bg-zinc-900 border-l border-zinc-800 h-full flex flex-col fade-enter-active">
+                        <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <i className="fa-solid fa-cart-shopping text-emerald-500"></i> Current Order
+                            </h2>
+                            <button onClick={onClose} className="text-zinc-500 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            {cart.length === 0 ? (
+                                <div className="text-center py-12 text-zinc-500"><p>Your research cart is empty.</p></div>
+                            ) : (
+                                cart.map(item => (
+                                    <div key={item.id} className="flex gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                        <img src={item.image} className="w-16 h-16 rounded-lg object-cover" />
+                                        <div className="flex-1">
+                                            <h3 className="text-white font-medium">{item.name}</h3>
+                                            <p className="text-emerald-500 text-sm font-bold">${item.price}</p>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 rounded bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700">-</button>
+                                                <span className="text-zinc-300 text-sm">{item.qty}</span>
+                                                <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 rounded bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700">+</button>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => remove(item.id)} className="text-zinc-600 hover:text-red-500 self-start"><i className="fa-solid fa-trash"></i></button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        <div className="p-6 border-t border-zinc-800 bg-zinc-900">
+                            <div className="flex justify-between text-white font-bold text-lg mb-6">
+                                <span>Total</span>
+                                <span>${cart.reduce((acc, item) => acc + (item.price * item.qty), 0)}</span>
+                            </div>
+                            <button onClick={checkout} disabled={cart.length === 0} className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+                                <i className="fa-brands fa-whatsapp text-lg"></i> Order via WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const AdminPanel = ({ isAdmin, setIsAdmin, adminPass, setAdminPass, whatsapp, setWhatsapp, products, setProducts, categories, setCategories, reviews, setReviews, labResults, setLabResults }) => {
+            const [activeTab, setActiveTab] = useState('products');
+            
+            // Forms
+            const [newProduct, setNewProduct] = useState({ name: '', price: '', category: 'Peptides', stock: '', image: '' });
+            const [newReview, setNewReview] = useState({ name: '', text: '', rating: 5, role: 'Researcher' });
+            const [newLabResult, setNewLabResult] = useState({ name: '', date: '', purity: '99.%', status: 'Verified', file: null });
+
+            // File Handler helper (Converts to Base64)
+            const handleFileUpload = (e, setter, field) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setter(prev => ({ ...prev, [field]: reader.result }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleAddProduct = () => {
+                if(!newProduct.name || !newProduct.price) return;
+                setProducts([...products, { ...newProduct, id: Date.now(), price: Number(newProduct.price), stock: Number(newProduct.stock) }]);
+                setNewProduct({ name: '', price: '', category: 'Peptides', stock: '', image: '' });
+            };
+
+            const handleAddReview = () => {
+                if(!newReview.name || !newReview.text) return;
+                setReviews([...reviews, { ...newReview, id: Date.now() }]);
+                setNewReview({ name: '', text: '', rating: 5, role: 'Researcher' });
+            };
+
+            const handleAddLabResult = () => {
+                if(!newLabResult.name) return;
+                setLabResults([...labResults, { ...newLabResult, id: Date.now() }]);
+                setNewLabResult({ name: '', date: '', purity: '99.%', status: 'Verified', file: null });
+            };
+
+            if (!isAdmin) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center px-4 pt-20">
+                        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 rounded-2xl text-center">
+                            <i className="fa-solid fa-lock text-4xl text-zinc-700 mb-6"></i>
+                            <h2 className="text-2xl font-bold text-white mb-6">Restricted Access</h2>
+                            <input type="password" value={adminPass} onChange={(e) => setAdminPass(e.target.value)} placeholder="Enter Password" 
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-white mb-4 focus:border-emerald-500 outline-none" />
+                            <button onClick={() => adminPass === "Coffee@6AM_IsPower" ? setIsAdmin(true) : alert("Wrong Password")} className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-4 rounded-xl">Unlock Dashboard</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 py-32">
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h2 className="text-3xl font-bold text-white">Command Center</h2>
+                            <p className="text-zinc-500 text-sm mt-1">Files are saved to browser memory (LocalStorage). Clear cache will delete them.</p>
+                        </div>
+                        <button onClick={() => setIsAdmin(false)} className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg text-sm hover:text-white">Log Out</button>
+                    </div>
+
+                    <div className="flex gap-4 mb-8 border-b border-zinc-800 pb-1 overflow-x-auto">
+                        {['products', 'reviews', 'labresults', 'settings'].map(tab => (
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-sm font-bold uppercase tracking-wider px-2 ${activeTab === tab ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-zinc-500'}`}>{tab}</button>
+                        ))}
+                    </div>
+
+                    {/* PRODUCTS TAB */}
+                    {activeTab === 'products' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl h-fit">
+                                <h3 className="font-bold text-white mb-4">Add Product</h3>
+                                <div className="space-y-3">
+                                    <input placeholder="Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <input type="number" placeholder="Price" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <input type="number" placeholder="Stock" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm">
+                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    
+                                    <div className="relative border-2 border-dashed border-zinc-800 rounded-lg p-6 text-center hover:bg-zinc-800/50 transition">
+                                        <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setNewProduct, 'image')} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                        <i className="fa-solid fa-cloud-arrow-up text-zinc-500 text-xl mb-2"></i>
+                                        <p className="text-xs text-zinc-500">{newProduct.image ? "Image Selected" : "Upload Image"}</p>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-600 text-center">or paste URL below</p>
+                                    <input placeholder="Image URL" value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-white text-xs" />
+
+                                    <button onClick={handleAddProduct} className="w-full bg-emerald-500 text-black font-bold py-3 rounded-lg text-sm mt-2">Add Item</button>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                                <table className="w-full text-left text-sm text-zinc-400">
+                                    <thead className="bg-zinc-950 text-zinc-500 font-medium border-b border-zinc-800">
+                                        <tr><th className="p-4">Product</th><th className="p-4">Price</th><th className="p-4">Stock</th><th className="p-4 text-right">Action</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800">
+                                        {products.map(p => (
+                                            <tr key={p.id} className="hover:bg-zinc-800/50">
+                                                <td className="p-4 flex items-center gap-3"><img src={p.image} className="w-8 h-8 rounded object-cover" /> {p.name}</td>
+                                                <td className="p-4">${p.price}</td><td className="p-4">{p.stock}</td>
+                                                <td className="p-4 text-right"><button onClick={() => setProducts(products.filter(x => x.id !== p.id))} className="text-red-500"><i className="fa-solid fa-trash"></i></button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* REVIEWS TAB */}
+                    {activeTab === 'reviews' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl h-fit">
+                                <h3 className="font-bold text-white mb-4">Add Review</h3>
+                                <div className="space-y-3">
+                                    <input placeholder="Name" value={newReview.name} onChange={e => setNewReview({...newReview, name: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <input placeholder="Role (e.g. Verified Buyer)" value={newReview.role} onChange={e => setNewReview({...newReview, role: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <select value={newReview.rating} onChange={e => setNewReview({...newReview, rating: Number(e.target.value)})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm">
+                                        {[5,4,3,2,1].map(r => <option key={r} value={r}>{r} Stars</option>)}
+                                    </select>
+                                    <textarea placeholder="Review Content" value={newReview.text} onChange={e => setNewReview({...newReview, text: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm h-24"></textarea>
+                                    <button onClick={handleAddReview} className="w-full bg-emerald-500 text-black font-bold py-3 rounded-lg text-sm">Post Review</button>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-2 space-y-4">
+                                {reviews.map(r => (
+                                    <div key={r.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-2"><span className="font-bold text-white">{r.name}</span><span className="text-xs bg-zinc-800 px-2 rounded text-zinc-400">{r.role}</span></div>
+                                            <p className="text-zinc-400 text-sm mt-1">{r.text}</p>
+                                        </div>
+                                        <button onClick={() => setReviews(reviews.filter(x => x.id !== r.id))} className="text-zinc-600 hover:text-red-500"><i className="fa-solid fa-trash"></i></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* LAB RESULTS TAB */}
+                    {activeTab === 'labresults' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl h-fit">
+                                <h3 className="font-bold text-white mb-4">New Lab Result</h3>
+                                <div className="space-y-3">
+                                    <input placeholder="Batch Name (e.g. BPC-157 #999)" value={newLabResult.name} onChange={e => setNewLabResult({...newLabResult, name: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <input placeholder="Date (e.g. Jan 2026)" value={newLabResult.date} onChange={e => setNewLabResult({...newLabResult, date: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    <input placeholder="Purity (e.g. 99.9%)" value={newLabResult.purity} onChange={e => setNewLabResult({...newLabResult, purity: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm" />
+                                    
+                                    <div className="relative border-2 border-dashed border-zinc-800 rounded-lg p-6 text-center hover:bg-zinc-800/50 transition">
+                                        <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e, setNewLabResult, 'file')} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                        <i className="fa-solid fa-file-pdf text-zinc-500 text-xl mb-2"></i>
+                                        <p className="text-xs text-zinc-500">{newLabResult.file ? "PDF Selected" : "Upload PDF Report"}</p>
+                                    </div>
+
+                                    <button onClick={handleAddLabResult} className="w-full bg-emerald-500 text-black font-bold py-3 rounded-lg text-sm">Add Result</button>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                                <table className="w-full text-left text-sm text-zinc-400">
+                                    <thead className="bg-zinc-950 text-zinc-500 font-medium border-b border-zinc-800">
+                                        <tr><th className="p-4">Batch</th><th className="p-4">Purity</th><th className="p-4">PDF</th><th className="p-4 text-right">Action</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800">
+                                        {labResults.map(l => (
+                                            <tr key={l.id} className="hover:bg-zinc-800/50">
+                                                <td className="p-4 font-bold text-white">{l.name}</td>
+                                                <td className="p-4 font-mono text-emerald-500">{l.purity}</td>
+                                                <td className="p-4">{l.file ? <span className="text-emerald-500 text-xs">Available</span> : <span className="text-zinc-600 text-xs">Missing</span>}</td>
+                                                <td className="p-4 text-right"><button onClick={() => setLabResults(labResults.filter(x => x.id !== l.id))} className="text-red-500"><i className="fa-solid fa-trash"></i></button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SETTINGS TAB */}
+                    {activeTab === 'settings' && (
+                        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+                            <h3 className="font-bold text-white mb-4">WhatsApp Target</h3>
+                            <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [view, setView] = useState('home');
+            const [cart, setCart] = useState([]);
+            const [isCartOpen, setIsCartOpen] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [activeCategory, setActiveCategory] = useState('All');
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [adminPass, setAdminPass] = useState('');
+            
+            // Persistent State (Load from LocalStorage or Default)
+            const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem('bp_products')) || INITIAL_PRODUCTS);
+            const [reviews, setReviews] = useState(() => JSON.parse(localStorage.getItem('bp_reviews')) || INITIAL_REVIEWS);
+            const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('bp_cats')) || INITIAL_CATEGORIES);
+            const [labResults, setLabResults] = useState(() => JSON.parse(localStorage.getItem('bp_lab_results')) || INITIAL_LAB_RESULTS);
+            const [whatsapp, setWhatsapp] = useState(() => localStorage.getItem('bp_wa') || '15550001234');
+
+            // Save to LocalStorage effects
+            useEffect(() => { localStorage.setItem('bp_products', JSON.stringify(products)); }, [products]);
+            useEffect(() => { localStorage.setItem('bp_reviews', JSON.stringify(reviews)); }, [reviews]);
+            useEffect(() => { localStorage.setItem('bp_cats', JSON.stringify(categories)); }, [categories]);
+            useEffect(() => { localStorage.setItem('bp_lab_results', JSON.stringify(labResults)); }, [labResults]);
+            useEffect(() => { localStorage.setItem('bp_wa', whatsapp); }, [whatsapp]);
+
+            const addToCart = (p) => {
+                const ex = cart.find(x => x.id === p.id);
+                setCart(ex ? cart.map(x => x.id === p.id ? {...x, qty: x.qty+1} : x) : [...cart, {...p, qty: 1}]);
+                setIsCartOpen(true);
+            };
+
+            const updateQty = (id, d) => setCart(cart.map(x => x.id === id ? {...x, qty: Math.max(1, x.qty+d)} : x));
+            const remove = (id) => setCart(cart.filter(x => x.id !== id));
+            
+            const checkout = () => {
+                let msg = `*New Order*\n\n`;
+                cart.forEach(x => msg += `• ${x.name} (x${x.qty}) - $${x.price * x.qty}\n`);
+                msg += `\n*Total: $${cart.reduce((a,b) => a + b.price*b.qty, 0)}*`;
+                window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+            };
+
+            const filteredProducts = products.filter(p => 
+                p.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
+                (activeCategory === 'All' || p.category === activeCategory)
+            );
+
+            return (
+                <div className="min-h-screen">
+                    <Navbar view={view} setView={setView} cartCount={cart.length} setIsCartOpen={setIsCartOpen} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                    <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} cart={cart} updateQty={updateQty} remove={remove} checkout={checkout} />
+                    
+                    <main>
+                        {view === 'home' && (
+                            <>
+                                <Hero setView={setView} />
+                                <Products products={filteredProducts} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} addToCart={addToCart} />
+                                <ReviewsView reviews={reviews} />
+                            </>
+                        )}
+                        {view === 'products' && <Products products={filteredProducts} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} addToCart={addToCart} />}
+                        {view === 'calculator' && <VisualCalculator />}
+                        {view === 'about' && <AboutView />}
+                        {view === 'reviews' && <ReviewsView reviews={reviews} />}
+                        {view === 'labresults' && <LabResultsView results={labResults} />}
+                        {view === 'admin' && <AdminPanel isAdmin={isAdmin} setIsAdmin={setIsAdmin} adminPass={adminPass} setAdminPass={setAdminPass} whatsapp={whatsapp} setWhatsapp={setWhatsapp} products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} reviews={reviews} setReviews={setReviews} labResults={labResults} setLabResults={setLabResults} />}
+                    </main>
+
+                    <footer className="bg-zinc-950 border-t border-zinc-900 py-12 mt-20 text-center text-zinc-500 text-sm">
+                        <p>&copy; 2026 BioPulse Laboratories. Research Use Only.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
